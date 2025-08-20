@@ -28,18 +28,23 @@ public class TweetController {
         this.tweetRepository = tweetRepository;
         this.userRepository = userRepository;
     }
-//esse feed e publico mais caso eu queira fazer ele privado ?
+
     @GetMapping("/feed")
     public ResponseEntity<FeedDto> feed(@RequestParam(value = "page", defaultValue = "0") int page,
-                                        @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+                                        @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
+                                        JwtAuthenticationToken token) {
 
-        var tweets = tweetRepository.findAll(
-                PageRequest.of(page, pageSize, Sort.Direction.DESC, "creationTimestamp"))
-                .map(tweet ->
-                        new FeedItemDto(
-                                tweet.getTweetId(),
-                                tweet.getContent(),
-                                tweet.getUser().getUsername())
+        // Obter o ID do usuário do token
+        UUID userId = UUID.fromString(token.getName());
+
+        // Buscar tweets apenas do usuário autenticado
+        var tweets = tweetRepository.findByUserUserId(
+                        userId,
+                        PageRequest.of(page, pageSize, Sort.Direction.DESC, "creationTimestamp"))
+                .map(tweet -> new FeedItemDto(
+                        tweet.getTweetId(),
+                        tweet.getContent(),
+                        tweet.getUser().getUsername())
                 );
 
         return ResponseEntity.ok(new FeedDto(
