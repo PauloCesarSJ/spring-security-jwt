@@ -28,7 +28,7 @@ public class TweetController {
         this.tweetRepository = tweetRepository;
         this.userRepository = userRepository;
     }
-
+//esse feed e publico mais caso eu queira fazer ele privado ?
     @GetMapping("/feed")
     public ResponseEntity<FeedDto> feed(@RequestParam(value = "page", defaultValue = "0") int page,
                                         @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
