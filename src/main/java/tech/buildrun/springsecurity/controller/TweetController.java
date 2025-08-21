@@ -30,7 +30,7 @@ public class TweetController {
     }
     //devolve todos os itens da tabela tweet
     @GetMapping("/Public/feed")
-    public ResponseEntity<FeedDto> feed(@RequestParam(value = "page", defaultValue = "0") int page,
+    public ResponseEntity<FeedDto> feedtotal(@RequestParam(value = "page", defaultValue = "0") int page,
                                         @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
 
         var tweets = tweetRepository.findAll(
@@ -51,10 +51,10 @@ public class TweetController {
                                         @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
                                         JwtAuthenticationToken token) {
 
-        // Obter o ID do usuário do token
+        // ID do usuário autenticado
         UUID userId = UUID.fromString(token.getName());
 
-        // Buscar tweets apenas do usuário autenticado
+        // Busca tweets só do usuário, paginados e ordenados
         var tweets = tweetRepository.findByUserUserId(
                         userId,
                         PageRequest.of(page, pageSize, Sort.Direction.DESC, "creationTimestamp"))
@@ -64,9 +64,15 @@ public class TweetController {
                         tweet.getUser().getUsername())
                 );
 
+        // Retorna resposta com paginação
         return ResponseEntity.ok(new FeedDto(
-                tweets.getContent(), page, pageSize, tweets.getTotalPages(), tweets.getTotalElements()));
+                tweets.getContent(),
+                page,
+                pageSize,
+                tweets.getTotalPages(),
+                tweets.getTotalElements()));
     }
+
 
     @PostMapping("/tweets")
     public ResponseEntity<Void> createTweet(@RequestBody CreateTweetDto dto,
