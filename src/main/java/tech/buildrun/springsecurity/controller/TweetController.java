@@ -28,7 +28,24 @@ public class TweetController {
         this.tweetRepository = tweetRepository;
         this.userRepository = userRepository;
     }
+    //devolve todos os itens da tabela tweet
+    @GetMapping("/Public/feed")
+    public ResponseEntity<FeedDto> feed(@RequestParam(value = "page", defaultValue = "0") int page,
+                                        @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
 
+        var tweets = tweetRepository.findAll(
+                        PageRequest.of(page, pageSize, Sort.Direction.DESC, "creationTimestamp"))
+                .map(tweet ->
+                        new FeedItemDto(
+                                tweet.getTweetId(),
+                                tweet.getContent(),
+                                tweet.getUser().getUsername())
+                );
+
+        return ResponseEntity.ok(new FeedDto(
+                tweets.getContent(), page, pageSize, tweets.getTotalPages(), tweets.getTotalElements()));
+    }
+    //Feed devolve itens da tabela tweet, apenas de usuarios logados
     @GetMapping("/feed")
     public ResponseEntity<FeedDto> feed(@RequestParam(value = "page", defaultValue = "0") int page,
                                         @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
