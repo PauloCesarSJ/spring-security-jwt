@@ -2,6 +2,7 @@ package tech.buildrun.springsecurity.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -26,7 +27,13 @@ public class TokenController {
 
     private final JwtEncoder jwtEncoder;
     private final UserRepository userRepository;
-    private BCryptPasswordEncoder passwordEncoder;
+    private final BCryptPasswordEncoder passwordEncoder;
+
+    @Value("${jwt.expiration:300}")
+    private Long expiration;
+
+    @Value("${jwt.issuer:mybackend}")
+    private String issuer;
 
     public TokenController(JwtEncoder jwtEncoder,
                            UserRepository userRepository,
@@ -38,16 +45,21 @@ public class TokenController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+        // Adicionar pequeno delay para evitar timing attacks
+        try {
+            Thread.sleep(100 + (long) (Math.random() * 100));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
 
         var user = userRepository.findByUsername(loginRequest.username());
 
         if (user.isEmpty() || !user.get().isLoginCorrect(loginRequest, passwordEncoder)) {
             logger.warn("Tentativa de login inválida para usuário: {}", loginRequest.username());
-            throw new BadCredentialsException("user or password is invalid!");
+            throw new BadCredentialsException("Credenciais inválidas");
         }
 
         var now = Instant.now();
-        var expiresIn = 300L;
 
         var scopes = user.get().getRoles()
                 .stream()
@@ -55,15 +67,16 @@ public class TokenController {
                 .collect(Collectors.joining(" "));
 
         var claims = JwtClaimsSet.builder()
-                .issuer("mybackend")
+                .issuer(issuer)
                 .subject(user.get().getUserId().toString())
                 .issuedAt(now)
-                .expiresAt(now.plusSeconds(expiresIn))
+                .expiresAt(now.plusSeconds(expiration))
                 .claim("scope", scopes)
+                .claim("username", user.get().getUsername()) // Adicionar username como claim
                 .build();
 
         var jwtValue = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
 
-        return ResponseEntity.ok(new LoginResponse(jwtValue, expiresIn));
+        return ResponseEntity.ok(new LoginResponse(jwtValue, expiration));
     }
 }
