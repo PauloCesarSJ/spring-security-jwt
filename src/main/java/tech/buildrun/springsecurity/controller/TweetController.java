@@ -28,10 +28,10 @@ public class TweetController {
         this.tweetRepository = tweetRepository;
         this.userRepository = userRepository;
     }
-    //devolve todos os itens da tabela tweet
+
     @GetMapping("/Public/feed")
     public ResponseEntity<FeedDto> feedtotal(@RequestParam(value = "page", defaultValue = "0") int page,
-                                        @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+                                             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
 
         var tweets = tweetRepository.findAll(
                         PageRequest.of(page, pageSize, Sort.Direction.DESC, "creationTimestamp"))
@@ -45,16 +45,14 @@ public class TweetController {
         return ResponseEntity.ok(new FeedDto(
                 tweets.getContent(), page, pageSize, tweets.getTotalPages(), tweets.getTotalElements()));
     }
-    //Feed devolve itens da tabela tweet, apenas de usuarios logados
+
     @GetMapping("/feed")
     public ResponseEntity<FeedDto> feed(@RequestParam(value = "page", defaultValue = "0") int page,
                                         @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
                                         JwtAuthenticationToken token) {
 
-        // ID do usuário autenticado
         UUID userId = UUID.fromString(token.getName());
 
-        // Busca tweets só do usuário, paginados e ordenados
         var tweets = tweetRepository.findByUserUserId(
                         userId,
                         PageRequest.of(page, pageSize, Sort.Direction.DESC, "creationTimestamp"))
@@ -64,7 +62,6 @@ public class TweetController {
                         tweet.getUser().getUsername())
                 );
 
-        // Retorna resposta com paginação
         return ResponseEntity.ok(new FeedDto(
                 tweets.getContent(),
                 page,
@@ -73,14 +70,14 @@ public class TweetController {
                 tweets.getTotalElements()));
     }
 
-
     @PostMapping("/tweets")
     public ResponseEntity<Void> createTweet(@RequestBody CreateTweetDto dto,
                                             JwtAuthenticationToken token) {
-        var user = userRepository.findById(UUID.fromString(token.getName()));
+        var user = userRepository.findById(UUID.fromString(token.getName()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
 
         var tweet = new Tweet();
-        tweet.setUser(user.get());
+        tweet.setUser(user);
         tweet.setContent(dto.content());
 
         tweetRepository.save(tweet);
@@ -91,21 +88,20 @@ public class TweetController {
     @DeleteMapping("/tweets/{id}")
     public ResponseEntity<Void> deleteTweet(@PathVariable("id") Long tweetId,
                                             JwtAuthenticationToken token) {
-        var user = userRepository.findById(UUID.fromString(token.getName()));
+        var user = userRepository.findById(UUID.fromString(token.getName()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
         var tweet = tweetRepository.findById(tweetId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tweet não encontrado"));
 
-        var isAdmin = user.get().getRoles()
+        var isAdmin = user.getRoles()
                 .stream()
                 .anyMatch(role -> role.getName().equalsIgnoreCase(Role.Values.ADMIN.name()));
 
-        if (isAdmin || tweet.getUser().getUserId().equals(UUID.fromString(token.getName()))) {
+        if (isAdmin || tweet.getUser().getUserId().equals(user.getUserId())) {
             tweetRepository.deleteById(tweetId);
-
         } else {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-
 
         return ResponseEntity.ok().build();
     }

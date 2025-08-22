@@ -1,5 +1,7 @@
 package tech.buildrun.springsecurity.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -13,6 +15,8 @@ import java.util.Set;
 
 @Configuration
 public class AdminUserConfig implements CommandLineRunner {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdminUserConfig.class);
 
     private RoleRepository roleRepository;
     private UserRepository userRepository;
@@ -36,7 +40,7 @@ public class AdminUserConfig implements CommandLineRunner {
 
         userAdmin.ifPresentOrElse(
                 user -> {
-                    System.out.println("admin ja existe");
+                    logger.info("Admin já existe");
                 },
                 () -> {
                     var user = new User();
@@ -44,6 +48,7 @@ public class AdminUserConfig implements CommandLineRunner {
                     user.setPassword(passwordEncoder.encode("123"));
                     user.setRoles(Set.of(roleAdmin));
                     userRepository.save(user);
+                    logger.info("Usuário admin criado com sucesso");
                 }
         );
     }

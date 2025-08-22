@@ -1,5 +1,7 @@
 package tech.buildrun.springsecurity.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -20,6 +22,8 @@ import java.util.stream.Collectors;
 @RestController
 public class TokenController {
 
+    private static final Logger logger = LoggerFactory.getLogger(TokenController.class);
+
     private final JwtEncoder jwtEncoder;
     private final UserRepository userRepository;
     private BCryptPasswordEncoder passwordEncoder;
@@ -38,6 +42,7 @@ public class TokenController {
         var user = userRepository.findByUsername(loginRequest.username());
 
         if (user.isEmpty() || !user.get().isLoginCorrect(loginRequest, passwordEncoder)) {
+            logger.warn("Tentativa de login inválida para usuário: {}", loginRequest.username());
             throw new BadCredentialsException("user or password is invalid!");
         }
 
