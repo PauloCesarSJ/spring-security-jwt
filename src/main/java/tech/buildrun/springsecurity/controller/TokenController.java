@@ -29,7 +29,7 @@ public class TokenController {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    @Value("${jwt.expiration:300}")
+    @Value("${jwt.expiration:3600}")
     private Long expiration;
 
     @Value("${jwt.issuer:mybackend}")
@@ -45,11 +45,12 @@ public class TokenController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
-        // Adicionar pequeno delay para evitar timing attacks
+        // Pequeno delay para evitar timing attacks
         try {
             Thread.sleep(100 + (long) (Math.random() * 100));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            return ResponseEntity.status(500).build();
         }
 
         var user = userRepository.findByUsername(loginRequest.username());
@@ -60,19 +61,20 @@ public class TokenController {
         }
 
         var now = Instant.now();
+        var userEntity = user.get();
 
-        var scopes = user.get().getRoles()
+        var scopes = userEntity.getRoles()
                 .stream()
                 .map(Role::getName)
                 .collect(Collectors.joining(" "));
 
         var claims = JwtClaimsSet.builder()
                 .issuer(issuer)
-                .subject(user.get().getUserId().toString())
+                .subject(userEntity.getUserId().toString())
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(expiration))
                 .claim("scope", scopes)
-                .claim("username", user.get().getUsername()) // Adicionar username como claim
+                .claim("username", userEntity.getUsername())
                 .build();
 
         var jwtValue = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();

@@ -38,13 +38,11 @@ public class UserController {
     @Transactional
     @PostMapping("/users")
     public ResponseEntity<Void> newUser(@RequestBody CreateUserDto dto) {
-        // Sanitizar username
         String sanitizedUsername = inputSanitizationFilter.sanitizeInput(dto.username());
 
         var basicRole = roleRepository.findByName(Role.Values.BASIC.name());
 
-        var userFromDb = userRepository.findByUsername(sanitizedUsername);
-        if (userFromDb.isPresent()) {
+        if (userRepository.findByUsername(sanitizedUsername).isPresent()) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Usuário já cadastrado");
         }
 
@@ -61,7 +59,6 @@ public class UserController {
     @GetMapping("/users")
     @PreAuthorize("hasAuthority('SCOPE_admin')")
     public ResponseEntity<List<User>> listUsers() {
-        var users = userRepository.findAll();
-        return ResponseEntity.ok(users);
+        return ResponseEntity.ok(userRepository.findAll());
     }
 }

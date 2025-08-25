@@ -18,9 +18,9 @@ public class AdminUserConfig implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminUserConfig.class);
 
-    private RoleRepository roleRepository;
-    private UserRepository userRepository;
-    private BCryptPasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     public AdminUserConfig(RoleRepository roleRepository,
                            UserRepository userRepository,
@@ -32,23 +32,18 @@ public class AdminUserConfig implements CommandLineRunner {
 
     @Override
     @Transactional
-    public void run(String... args) throws Exception {
-
+    public void run(String... args) {
         var roleAdmin = roleRepository.findByName(Role.Values.ADMIN.name());
 
-        var userAdmin = userRepository.findByUsername("admin");
-
-        userAdmin.ifPresentOrElse(
-                user -> {
-                    logger.info("Admin já existe");
-                },
+        userRepository.findByUsername("admin").ifPresentOrElse(
+                user -> logger.info("Admin user already exists"),
                 () -> {
                     var user = new User();
                     user.setUsername("admin");
                     user.setPassword(passwordEncoder.encode("123"));
                     user.setRoles(Set.of(roleAdmin));
                     userRepository.save(user);
-                    logger.info("Usuário admin criado com sucesso");
+                    logger.info("Admin user created successfully");
                 }
         );
     }

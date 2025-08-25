@@ -8,13 +8,10 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.web.csrf.InvalidCsrfTokenException;
-import org.springframework.security.web.csrf.MissingCsrfTokenException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -185,7 +182,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.FORBIDDEN.value(),
                 HttpStatus.FORBIDDEN.getReasonPhrase(),
                 "Acesso negado",
-                "Você não tem permissão para acessar este recursuo",
+                "Você não tem permissão para acessar este recurso",
                 request.getRequestURI()
         );
 
@@ -208,20 +205,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, ex.getStatusCode());
     }
 
-    @ExceptionHandler({InvalidCsrfTokenException.class, MissingCsrfTokenException.class})
-    public ResponseEntity<ErrorResponse> handleCsrfException(Exception ex, HttpServletRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.FORBIDDEN.value(),
-                HttpStatus.FORBIDDEN.getReasonPhrase(),
-                "Token CSRF inválido ou ausente",
-                "Solicitação não autorizada",
-                request.getRequestURI()
-        );
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
-    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAllExceptions(
             Exception ex, HttpServletRequest request) {
@@ -231,7 +214,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
                 "Ocorreu um erro interno no servidor",
-                ex.getMessage(),
+                "Por favor, tente novamente mais tarde",
                 request.getRequestURI()
         );
 
@@ -256,6 +239,7 @@ public class GlobalExceptionHandler {
             this.path = path;
         }
 
+        // Getters
         public LocalDateTime getTimestamp() { return timestamp; }
         public int getStatus() { return status; }
         public String getError() { return error; }
