@@ -29,12 +29,12 @@ public class TweetController {
         this.userRepository = userRepository;
     }
 
-    @GetMapping("/feed")
-    public ResponseEntity<FeedDto> feed(@RequestParam(value = "page", defaultValue = "0") int page,
-                                        @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+    @GetMapping("/Public/feed")
+    public ResponseEntity<FeedDto> feedtotal(@RequestParam(value = "page", defaultValue = "0") int page,
+                                             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
 
         var tweets = tweetRepository.findAll(
-                PageRequest.of(page, pageSize, Sort.Direction.DESC, "creationTimestamp"))
+                        PageRequest.of(page, pageSize, Sort.Direction.DESC, "creationTimestamp"))
                 .map(tweet ->
                         new FeedItemDto(
                                 tweet.getTweetId(),
@@ -46,13 +46,38 @@ public class TweetController {
                 tweets.getContent(), page, pageSize, tweets.getTotalPages(), tweets.getTotalElements()));
     }
 
+    @GetMapping("/feed")
+    public ResponseEntity<FeedDto> feed(@RequestParam(value = "page", defaultValue = "0") int page,
+                                        @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
+                                        JwtAuthenticationToken token) {
+
+        UUID userId = UUID.fromString(token.getName());
+
+        var tweets = tweetRepository.findByUserUserId(
+                        userId,
+                        PageRequest.of(page, pageSize, Sort.Direction.DESC, "creationTimestamp"))
+                .map(tweet -> new FeedItemDto(
+                        tweet.getTweetId(),
+                        tweet.getContent(),
+                        tweet.getUser().getUsername())
+                );
+
+        return ResponseEntity.ok(new FeedDto(
+                tweets.getContent(),
+                page,
+                pageSize,
+                tweets.getTotalPages(),
+                tweets.getTotalElements()));
+    }
+
     @PostMapping("/tweets")
     public ResponseEntity<Void> createTweet(@RequestBody CreateTweetDto dto,
                                             JwtAuthenticationToken token) {
-        var user = userRepository.findById(UUID.fromString(token.getName()));
+        var user = userRepository.findById(UUID.fromString(token.getName()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
 
         var tweet = new Tweet();
-        tweet.setUser(user.get());
+        tweet.setUser(user);
         tweet.setContent(dto.content());
 
         tweetRepository.save(tweet);
@@ -63,21 +88,20 @@ public class TweetController {
     @DeleteMapping("/tweets/{id}")
     public ResponseEntity<Void> deleteTweet(@PathVariable("id") Long tweetId,
                                             JwtAuthenticationToken token) {
-        var user = userRepository.findById(UUID.fromString(token.getName()));
+        var user = userRepository.findById(UUID.fromString(token.getName()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
         var tweet = tweetRepository.findById(tweetId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tweet não encontrado"));
 
-        var isAdmin = user.get().getRoles()
+        var isAdmin = user.getRoles()
                 .stream()
                 .anyMatch(role -> role.getName().equalsIgnoreCase(Role.Values.ADMIN.name()));
 
-        if (isAdmin || tweet.getUser().getUserId().equals(UUID.fromString(token.getName()))) {
+        if (isAdmin || tweet.getUser().getUserId().equals(user.getUserId())) {
             tweetRepository.deleteById(tweetId);
-
         } else {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-
 
         return ResponseEntity.ok().build();
     }
