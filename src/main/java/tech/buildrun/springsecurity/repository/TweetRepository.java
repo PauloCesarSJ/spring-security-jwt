@@ -13,5 +13,9 @@ import java.util.UUID;
 @Repository
 public interface TweetRepository extends JpaRepository<Tweet, Long> {
 
+    @Query("SELECT t FROM Tweet t WHERE t.user.userId = :userId")
     Page<Tweet> findByUserUserId(@Param("userId") UUID userId, Pageable pageable);
+
+    // Consulta alternativa usando query method (também segura)
+    Page<Tweet> findByUser_UserId(UUID userId, Pageable pageable);
 }

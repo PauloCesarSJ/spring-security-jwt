@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import tech.buildrun.springsecurity.config.InputSanitizationFilter;
 import tech.buildrun.springsecurity.controller.dto.CreateTweetDto;
 import tech.buildrun.springsecurity.controller.dto.FeedDto;
 import tech.buildrun.springsecurity.controller.dto.FeedItemDto;
@@ -22,11 +23,14 @@ public class TweetController {
 
     private final TweetRepository tweetRepository;
     private final UserRepository userRepository;
+    private final InputSanitizationFilter inputSanitizationFilter;
 
     public TweetController(TweetRepository tweetRepository,
-                           UserRepository userRepository) {
+                           UserRepository userRepository,
+                           InputSanitizationFilter inputSanitizationFilter) {
         this.tweetRepository = tweetRepository;
         this.userRepository = userRepository;
+        this.inputSanitizationFilter = inputSanitizationFilter;
     }
 
     @GetMapping("/Public/feed")
@@ -73,12 +77,15 @@ public class TweetController {
     @PostMapping("/tweets")
     public ResponseEntity<Void> createTweet(@RequestBody CreateTweetDto dto,
                                             JwtAuthenticationToken token) {
+        // Sanitizar conteúdo do tweet
+        String sanitizedContent = inputSanitizationFilter.sanitizeInput(dto.content());
+
         var user = userRepository.findById(UUID.fromString(token.getName()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
 
         var tweet = new Tweet();
         tweet.setUser(user);
-        tweet.setContent(dto.content());
+        tweet.setContent(sanitizedContent);
 
         tweetRepository.save(tweet);
 

@@ -21,6 +21,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -45,11 +46,12 @@ public class SecurityConfig {
     private String privateKeyPath;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, InputSanitizationFilter inputSanitizationFilter) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 // Desabilitar CSRF para APIs REST
                 .csrf(csrf -> csrf.disable())
+                .addFilterBefore(inputSanitizationFilter, BasicAuthenticationFilter.class)
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'"))
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
@@ -102,6 +104,11 @@ public class SecurityConfig {
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public InputSanitizationFilter inputSanitizationFilter() {
+        return new InputSanitizationFilter();
     }
 
     private RSAPublicKey getPublicKey() throws Exception {
