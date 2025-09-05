@@ -221,30 +221,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    public static class ErrorResponse {
-        private LocalDateTime timestamp;
-        private int status;
-        private String error;
-        private String message;
-        private String details;
-        private String path;
-
-        public ErrorResponse(LocalDateTime timestamp, int status, String error,
-                             String message, String details, String path) {
-            this.timestamp = timestamp;
-            this.status = status;
-            this.error = error;
-            this.message = message;
-            this.details = details;
-            this.path = path;
-        }
-
-        // Getters
-        public LocalDateTime getTimestamp() { return timestamp; }
-        public int getStatus() { return status; }
-        public String getError() { return error; }
-        public String getMessage() { return message; }
-        public String getDetails() { return details; }
-        public String getPath() { return path; }
+    public record ErrorResponse(LocalDateTime timestamp, int status, String error, String message, String details,
+                                String path) {
     }
 }

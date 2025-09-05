@@ -23,6 +23,7 @@ import tech.buildrun.springsecurity.repository.UserRepository;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -111,7 +112,7 @@ public class TokenController {
 
         var claims = JwtClaimsSet.builder()
                 .issuer(issuer)
-                .audience(Arrays.asList(audience))
+                .audience(Collections.singletonList(audience))
                 .subject(userEntity.getUserId().toString())
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(expiration))

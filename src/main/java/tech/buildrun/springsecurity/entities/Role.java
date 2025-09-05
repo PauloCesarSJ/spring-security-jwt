@@ -33,7 +33,7 @@ public class Role {
         ADMIN(1L),
         BASIC(2L);
 
-        long roleId;
+        final long roleId;
 
         Values(long roleId) {
             this.roleId = roleId;
